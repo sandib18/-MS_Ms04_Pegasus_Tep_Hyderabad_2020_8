@@ -1,281 +1,205 @@
-/** @constructor */
-var Card = function (suit, number){
-    /** @returns {Number} The number of the card in the deck. (1-52) */
-    this.getNumber = function (){
-        return number;
-    };
-    /** @returns {String} The name of the suit. "Hearts","Clubs","Spades", or "Diamonds." */
-    this.getSuit = function (){
-        var suitName = '';
-        switch (suit){
-            case 1:
-                suitName = "Hearts";
-                break;
-            case 2:
-                suitName = "Clubs";
-                break;
-            case 3:
-                suitName = "Spades";
-                break;
-            case 4:
-                suitName = "Diamonds";
-                break;
-        }
-        return suitName;
-    };
-    /** @returns {String} The HTML-encoded symbol of the suit. */
-    this.getSymbol = function (){
-        var suitName = '';
-        switch (suit){
-            case 1:
-                suitName = "&hearts;";
-                break;
-            case 2:
-                suitName = "&clubs;";
-                break;
-            case 3:
-                suitName = "&spades;";
-                break;
-            case 4:
-                suitName = "&diams;";
-                break;
-        }
-        return suitName;
-    };
-    /** @returns {Number} The value of the card for scoring. */
-    this.getValue = function (){
-        var value = number;
-        if (number >= 10){
-            value = 10;
-        }
-        if(number === 1) {
-            value = 11;
-        }
-        return value;
-    };
-    /** @returns {String} The full name of the card. "Ace of Spades" */
-    this.getName = function (){
-        var cardName = '';
-        switch (number){
-	    case 1:
-                cardName = "A";
-                break;
-            case 13:
-                cardName = "K";
-                break;
-            case 12:
-               cardName = "Q";
-                break;
-            case 11:
-                cardName = "J";
-                break;
-            default:
-                cardName = number;
-                break;
-        }
-        return cardName+this.getSymbol();
-    };
-};
-/** @constructor */
-var Deck = function (){
-    var cards = [];
-    /** Creates a new set of cards. */
-    var newCards = function (){
-        var i,
-            suit,
-            number;
-        for (i=0;i<52;i++){
-suit = i%4+1;
-            number = i%13+1;
-            cards.push(new Card(suit,number));
-        }
-    };
-    /* Create those new cards. */
-    newCards();
-    /** Shuffles the cards. Modifies the private instance of the cards array.
-     * @returns {Array} An array of Cards representing the shuffled version of the deck.
-     */
-    this.shuffle = function (){
-        for(var j, x, i = cards.length; i; j = parseInt(Math.random() * i), x = cards[--i], cards[i] = cards[j], cards[j] = x);
-        return cards;
-    };
-    /** @returns {Array} An array of cards representing the Deck. */
-    this.getCards = function (){
-        return cards;
-    };
-    /** @returns {Card} Deals the top card off the deck. Removes it from the Deck. */
-    this.deal = function (){
-        if (!cards.length){
-            //console.log("Ran out of cards, new deck");
-            newCards();
-            this.shuffle();
-        }
-        return cards.pop();
-    };
-};
-/** @constructor */
-var Hand = function (deck){
-    var cards = [];
+let suits = ['Hearts', 'Clubs', 'Diamonds', 'Spades'];
+let values = ['Ace', 'King', 'Queen', 'Jack',
+  'Ten', 'Nine', 'Eight', 'Seven', 'Six',
+  'Five', 'Four', 'Three', 'Two', 'One'
+];
 
-    /* Deal two cards to begin. */
-    cards.push( deck.deal(), deck.deal());
-    /** @returns {Array} The array of Cards representing the Hand. */
-    this.getHand = function (){
-        return cards;
-    };
-    /** @returns {Number} The score of the Hand. */
-    this.score = function (){
-        var i,
-            score = 0,
-            cardVal = 0, // Stashing the Card's value
-            aces = 0; // Stores the # of Aces in the Hand
+let textArea = document.getElementById('text-area');
+let newGameButton = document.getElementById('new-game-button');
+let hitButton = document.getElementById('hit-button');
+let stayButton = document.getElementById('stay-button');
 
-        for (i=0;i<cards.length;i++){
-            cardVal = cards[i].getValue();
-            if (cardVal == 11) {
-                aces += 1;
-            }
-            score += cardVal;
-        }
-        /* Check to see if Aces should be 1 or 11 */
-        while (score > 21 && aces > 0){
-            score -= 10;
-            aces -=1;
-        }
-        return score;
-    };
-/** @returns {String} Comma separated list of Card names in the Hand. */
-    this.printHand = function (){
-        var arrayOut = [],
-            i;
+hitButton.style.display = 'none';
+stayButton.style.display = 'none';
 
-        for (i=0;i<cards.length;i++){
-            arrayOut.push(cards[i].getName());
-        }
-        return arrayOut.join();
-    };
-    /** Adds a Card from the Deck into the Hand. */
-    this.hitMe = function (){
-        if (cards.length < 5){
-            cards.push(deck.deal());
-        }
-    };
-    /** @returns {String} HTML representation of the Cards in the Hand. */
-    this.toHtml = function (){
-        var arrayOut = [],
-            i;
+let gameStart = false,
+  gameOver = false,
+  playWon = false,
+  dealerCards = [],
+  playerCards = [],
+  dealerScore = 0,
+  playerScore = 0,
+  deck = [];
 
-        for (i=0;i<cards.length;i++){
-            arrayOut.push('<div class="card ',cards[i].getSuit(),' ',cards[i].getNumber(),'">',cards[i].getName(),'</div>');
-        }
-        return arrayOut.join('');
-    };
-};
+newGameButton.addEventListener('click', function() {
+  gameStarted = true;
+  gameOver = false;
+  playerWon = false;
 
-/** Play BLACKJACK! */
-var BlackJack = (function ($){
-    /* Set up our Game's Deck */
-var deck = new Deck();
+  deck = createDeck();
+  shuffleDeck(deck);
+  dealerCards = [getNextCard(), getNextCard()];
+  playerCards = [getNextCard(), getNextCard()];
+  newGameButton.style.display = 'none';
+  hitButton.style.display = 'inline';
+  stayButton.style.display = 'inline';
+  showStatus();
+})
 
-    /* win/lose ratio */
-    var wins = 0;
-    var losses = 0;
+function createDeck() {
+  let deck = []
+  for (let suitIdx = 0; suitIdx < suits.length; suitIdx++) {
+    for (let valueIdx = 0; valueIdx < values.length; valueIdx++) {
+      let card = {
+        suit: suits[suitIdx],
+        value: values[valueIdx]
+      }
+      deck.push(card);
+    }
+  }
+  return deck;
+}
 
-    /** Tally the score to determine the outcome. */
-    var declareWinner = function (userHand, dealerHand){
-        var outcome = '',
-            dealerScore = dealerHand.score(),
-            userScore = userHand.score();
+function shuffleDeck(deck){
+  for(let i=0; i<deck.length; i++)
+  {
+    let swapIdx = Math.trunc(Math.random() *deck.length);
+    let tmp = deck[swapIdx];
+    deck[swapIdx] = deck[i];
+    deck[i] = tmp; 
+  }
+}
 
-        /* rules */
-        if (userScore > 21 || dealerScore === 21){
-            outcome = "You lose!";
-            losses++;
-        }else if (userScore <= 21 && userHand.getHand().length >=5){
-            outcome = "You win!";
-            wins++;
-        }else if (dealerScore > 21 || userScore === 21 || userScore > dealerHand.score()){
-            outcome = "You win!";
-            wins++;
-        }else if (dealerScore > userScore){
-            outcome = "You lose!";
-            losses++;
-        }else if (dealerScore === userScore){
-            outcome = "You tied!";
-        }
-        /* Output the result of the round. */
-        return outcome+"<br />Dealer: "+dealerHand.score()+"<br />You: "+userScore;
-    };
- /** the dealer */
-    var dealerHand = function (){
-        var hand = new Hand(deck);
+hitButton.addEventListener('click', function(){
+  playerCards.push(getNextCard());
+  checkForEndOfGame();
+  showStatus();
+});
 
-        while (hand.score() < 17 && hand.length < 5){
-            hand.hitMe();
-        }
-        return hand;
-    };
+stayButton.addEventListener('click', function(){
+  gameOver = true;
+  checkForEndOfGame();
+  showStatus();
+});
 
-    /** Holds your Hand */
-    var yourHand;
+function checkForEndOfGame(){
+  updateScores();
+  
+  if(gameOver){
+    while(dealerScore<playerScore &&
+          playerScore <=21 &&
+          dealerScore <=21){
+            dealerCards.push(getNextCard());
+            updateScores();
+    }
+  }
+    
+    if(playerScore>21){
+      playerWon=false;
+      gameOver = true;
+    }
+    
+    else if(dealerScore>21){
+      playerWon = true;
+      gameOver = true;
+    }
+    
+    else if(gameOver){
+      if(playerScore>dealerScore){
+        playerWon = true;
+      }
+      else{
+        playerWon = false;
+      }
+    }
+}
 
-    /* CACHE SELECTORS!!! */
-    var $hitButton = $("#hitMe"),
-        $standButton = $("#stand"),
-        $dealButton = $("#deal"),
-        $score = $("#yourScore"),
-        $yourHand = $('#yourHand'),
-        $dealerHand = $('#dealerHand');
+function getCardString(card) {
+  return card.value + " of " + card.suit;
+}
+function getCardNumericValue(card){
+  switch(card.value){
+    case 'Ace':
+      return 1;
+    case 'Two':
+      return 2;
+    case 'Three':
+      return 3;
+    case 'Four':
+      return 4;
+    case 'Five':
+      return 5;
+    case 'Six':
+      return 6;
+    case 'Seven':
+      return 7;
+    case 'Eight':
+      return 8;
+    case 'Nine':
+      return 9;
+    default:
+      return 10; 
+  }
+}
+function showStatus()
+{
+  if(!gameStarted)
+  {
+    textArea.innerText = 'Welcome to Blackjack!';
+    return; 
+  }
+  
+  let dealerCardString = '';
+  for(let i=0; i<dealerCards.length; i++)
+  {
+    dealerCardString += getCardString(dealerCards[i]) + '\n';
+  }
+  let playerCardString='';
+  for(let i=0; i<playerCards.length; i++)
+  {
+    playerCardString += getCardString(playerCards[i]) + '\n';
+  }
+  
+  updateScores();
+  
+  textArea.innerText = 'Dealer has:\n' +
+                        dealerCardString + 
+                        '(score: ' + dealerScore + ')\n\n' +
+                        
+                        'Player has:\n' +
+                        playerCardString + 
+                        '(score: ' + playerScore + ')\n\n';
+                        
+  if(gameOver){
+    if(playerWon)
+    {
+      textArea.innerText += "YOU WIN!";
+    }
+    else{
+      textArea.innerText += "DEALER WINS";
+    }
+    newGameButton.style.display = 'inline';
+    hitButton.style.display = 'none';
+    stayButton.style.display = 'none';
+    
+  }
+}
 
-    /** Show the Deal button, hide others. */
-    var showDeal = function (){
-        $hitButton.hide();
-        $standButton.hide();
-        //$score.hide();
-        $dealButton.show();
-    };
-/** Show the control buttons, hide Deal. */
-    var showControls = function (){
-        $hitButton.show();
-        $standButton.show();
-       // $score.show();
-        $dealButton.hide();
-    };
+function getScore(cardArray){
+  let score = 0;
+  let hasAce = false;
+  for(let i=0; i<cardArray.length; i++){
+    let card = cardArray[i];
+    score += getCardNumericValue(card);
+    if(card.value == 'Ace'){
+      hasAce = true;
+    }
+    
+    if(hasAce && score+10<=21){
+      return score+10;
+    }
+  }
+   return score; 
+}
 
-    /** Update your score and card display. */
-    var updateUI = function (){
-        /* Cards */
-        $yourHand.html(yourHand.toHtml());
-        /* Score */
-        $score.find(".digits").html(yourHand.score());
-        $("#wins").text(wins);
-        $("#losses").text(losses);
-    };
+function updateScores(){
+  dealerScore = getScore(dealerCards);
+  playerScore = getScore(playerCards); 
+}
 
-    /* Deal Button */
-    $dealButton.on('click', function (){
-        yourHand = new Hand(deck);
-        updateUI();
-        showControls();
-    });
 
-    /* Hit Button */
-    $hitButton.on('click', function (){
-        yourHand.hitMe();
-        if (yourHand.getHand().length >= 5 || yourHand.score() > 21){
-            $standButton.trigger('click');
-	}else{
-            updateUI();
-        }
-    });
+function getNextCard() {
+  return deck.shift();
+}
 
-    /* Stand Button */
-    $standButton.on('click', function (){
-        $yourHand.html(declareWinner(yourHand, dealerHand()));
-        showDeal();
-    });
-
-    /* Make sure to shuffle. */
-    deck.shuffle();
-}(jQuery));
-
+   
