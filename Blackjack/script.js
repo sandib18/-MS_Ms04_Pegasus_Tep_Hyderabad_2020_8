@@ -12,6 +12,7 @@ let stayButton = document.getElementById('stay-button');
 hitButton.style.display = 'none';
 stayButton.style.display = 'none';
 
+//start of the game
 let gameStart = false,
   gameOver = false,
   playWon = false,
@@ -36,6 +37,7 @@ newGameButton.addEventListener('click', function() {
   showStatus();
 })
 
+//creating deck
 function createDeck() {
   let deck = []
   for (let suitIdx = 0; suitIdx < suits.length; suitIdx++) {
@@ -50,6 +52,7 @@ function createDeck() {
   return deck;
 }
 
+//shuffle deck
 function shuffleDeck(deck){
   for(let i=0; i<deck.length; i++)
   {
@@ -72,6 +75,7 @@ stayButton.addEventListener('click', function(){
   showStatus();
 });
 
+//to check end of game
 function checkForEndOfGame(){
   updateScores();
   
@@ -104,6 +108,7 @@ function checkForEndOfGame(){
     }
 }
 
+//card values
 function getCardString(card) {
   return card.value + " of " + card.suit;
 }
@@ -131,6 +136,8 @@ function getCardNumericValue(card){
       return 10; 
   }
 }
+
+//status of the game
 function showStatus()
 {
   if(!gameStarted)
@@ -175,6 +182,7 @@ function showStatus()
   }
 }
 
+//to display score
 function getScore(cardArray){
   let score = 0;
   let hasAce = false;
